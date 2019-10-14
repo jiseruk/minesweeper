@@ -1,0 +1,1 @@
+dsn: "postgres://minesweeper:minesweeper@db:5432/minesweeper?sslmode=disable"

@@ -1,0 +1,56 @@
+basePath: /api/v1
+definitions:
+  models.Board:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      height:
+        type: integer
+      id:
+        type: integer
+      matrix:
+        items:
+          type: '&{%!s(token.Pos=821) <nil> string}'
+        type: array
+      mines:
+        type: integer
+      status:
+        type: string
+      updated_at:
+        type: string
+      width:
+        type: integer
+    type: object
+info:
+  contact:
+    email: javier.iseruk@gmail.com
+    name: API Support
+  description: Swagger API for Golang Project Blueprint.
+  license: {}
+  termsOfService: http://swagger.io/terms/
+  title: Blueprint Swagger API
+  version: "1.0"
+paths:
+  /boards/:
+    post:
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Board'
+      summary: Creates board based on given json data
+  /boards/{id}:
+    put:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Board'
+      summary: Selects a point in the board
+swagger: "2.0"
