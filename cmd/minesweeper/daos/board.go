@@ -25,10 +25,10 @@ func (dao *BoardDAOImpl) Create(board *models.Board) (*models.Board, error) {
 }
 
 func (dao *BoardDAOImpl) Update(board *models.Board) (*models.Board, error) {
-	board.Populate()
-	fmt.Printf("ID: %d", board.ID)
-	s := config.Config.DB.Update(board)
-	fmt.Print(s.Error)
+	if err := config.Config.DB.Debug().Save(&board).Error; err != nil {
+		fmt.Print(err.Error())
+		return nil, err
+	}
 	return board, nil
 }
 
@@ -36,6 +36,6 @@ func (dao *BoardDAOImpl) Update(board *models.Board) (*models.Board, error) {
 func (dao *BoardDAOImpl) Get(id int) (*models.Board, error) {
 	var board models.Board
 	config.Config.DB.Where([]int{id}).First(&board)
-	board.Populate()
+	board.GetBoardFromDB()
 	return &board, nil
 }

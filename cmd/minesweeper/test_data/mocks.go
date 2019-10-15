@@ -18,6 +18,14 @@ func (m *MockBoardDAO) Create(board *models.Board) (*models.Board, error) {
 	return board, nil
 }
 
+func (m *MockBoardDAO) Update(board *models.Board) (*models.Board, error) {
+	board.ID = len(m.Records) + 1
+	board.Status = models.StatusActive
+	m.Records[board.ID] = *board
+
+	return board, nil
+}
+
 func (m *MockBoardDAO) Get(id int) (*models.Board, error) {
 	if board, ok := m.Records[id]; ok {
 		return &board, nil

@@ -53,6 +53,7 @@ func SelectPoint(c *gin.Context) {
 	board, err := boardService.SelectPoint(id, point)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 	c.JSON(http.StatusOK, board.Print())
 }

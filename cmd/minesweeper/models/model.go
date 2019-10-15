@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -19,12 +20,12 @@ type Model struct {
 }
 
 type Point struct {
-	X             int  `json:"x"`
-	Y             int  `json:"y"`
-	Mine          bool `json:"mine"`
-	selected      bool `json:"selected"`
-	mineCandidate bool `json:"mine_candidate"`
-	mineNeigboors int  `json:"mine_neigboors"`
+	X              int  `json:"x"`
+	Y              int  `json:"y"`
+	Mine           bool `json:"mine"`
+	Selected       bool `json:"selected"`
+	MineCandidate  bool `json:"mine_candidate"`
+	MineNeighbours int  `json:"mine_neighbours"`
 }
 
 type Board struct {
@@ -35,23 +36,23 @@ type Board struct {
 	Matrix  [][]string `gorm:"-" json:"matrix"`
 	Board   [][]Point  `gorm:"-" json:"-"`
 	BoardDB string     `gorm:"board" json:"-"`
-	Status  string     `json:"status"`
+	Status  string     `gorm:"status" json:"status"`
 }
 
 func (p *Point) click() {
-	p.selected = true
+	p.Selected = true
 }
 
 func (p *Point) unselect() {
-	p.selected = false
+	p.Selected = false
 }
 
 func (p *Point) mark() {
-	p.mineCandidate = true
+	p.MineCandidate = true
 }
 
 func (p *Point) unmark() {
-	p.mineCandidate = false
+	p.MineCandidate = false
 }
 
 func (b *Board) Print() *Board {
@@ -64,19 +65,19 @@ func (b *Board) Print() *Board {
 				if b.Board[i][j].Mine {
 					b.Matrix[i][j] = "*"
 				} else {
-					b.Matrix[i][j] = strconv.Itoa(b.Board[i][j].mineNeigboors)
+					b.Matrix[i][j] = strconv.Itoa(b.Board[i][j].MineNeighbours)
 				}
-			} else if !points[j].selected {
+			} else if !points[j].Selected {
 				b.Matrix[i][j] = "-"
-			} else if points[j].Mine && points[j].mineCandidate {
+			} else if points[j].Mine && points[j].MineCandidate {
 				b.Matrix[i][j] = "*"
-			} else if points[j].Mine && !points[j].mineCandidate {
+			} else if points[j].Mine && !points[j].MineCandidate {
 				b.Matrix[i][j] = "X"
 			} else {
-				if points[j].mineNeigboors == 0 {
+				if points[j].MineNeighbours == 0 {
 					b.Matrix[i][j] = " "
 				} else {
-					b.Matrix[i][j] = strconv.Itoa(points[j].mineNeigboors)
+					b.Matrix[i][j] = strconv.Itoa(points[j].MineNeighbours)
 				}
 			}
 			//looping over each element of array and assigning it a random variable
@@ -91,24 +92,25 @@ func (b *Board) Select(p Point) bool {
 	}
 	var point *Point
 	point = &b.Board[p.X][p.Y]
-	if point.selected || point.mineCandidate {
+	if point.Selected || point.MineCandidate {
 		return false
 	} else if point.Mine {
 		b.Status = StatusLost
 		return false
 	} else {
-		point.selected = true
-		defer b.setBoardForDB()
-		for _, pt := range b.neigboors(point) {
-			if !pt.selected && !pt.mineCandidate && !pt.Mine {
-				if pt.mineNeigboors == 0 {
+		point.Selected = true
+		//b.setBoardForDB()
+		for _, pt := range b.neighbours(point) {
+			if !pt.Selected && !pt.MineCandidate && !pt.Mine {
+				if pt.MineNeighbours == 0 {
 					b.Select(*pt)
 				} else {
-					b.Board[pt.X][pt.Y].selected = true
-					defer b.setBoardForDB()
+					b.Board[pt.X][pt.Y].Selected = true
+					//b.setBoardForDB()
 				}
 			}
 		}
+		b.setBoardForDB()
 		return true
 	}
 }
@@ -118,7 +120,7 @@ func (b *Board) Populate() *Board {
 	for i, points := range b.Board {
 		points = make([]Point, b.Width)
 		for j := range points {
-			points[j] = Point{X: i, Y: j, Mine: false, selected: false, mineCandidate: false}
+			points[j] = Point{X: i, Y: j, Mine: false, Selected: false, MineCandidate: false}
 			//looping over each element of array and assigning it a random variable
 		}
 		b.Board[i] = points
@@ -128,7 +130,7 @@ func (b *Board) Populate() *Board {
 		x := rand.Intn(b.Width)
 		y := rand.Intn(b.Height)
 		if !b.Board[x][y].Mine {
-			b.Board[x][y] = Point{X: x, Y: y, Mine: true, selected: false, mineCandidate: false}
+			b.Board[x][y] = Point{X: x, Y: y, Mine: true, Selected: false, MineCandidate: false}
 			i++
 		}
 	}
@@ -136,7 +138,7 @@ func (b *Board) Populate() *Board {
 	for _, points := range b.Board {
 		for j := range points {
 			if !points[j].Mine {
-				points[j].mineNeigboors = len(filter(b.neigboors(&points[j]), mineNeigboors))
+				points[j].MineNeighbours = len(filter(b.neighbours(&points[j]), mineNeigboors))
 			}
 		}
 	}
@@ -144,7 +146,7 @@ func (b *Board) Populate() *Board {
 	return b
 }
 
-func (b *Board) neigboors(point *Point) []*Point {
+func (b *Board) neighbours(point *Point) []*Point {
 	points := make([]*Point, 0)
 	if point.X > 0 && point.Y > 0 {
 		points = append(points, &b.Board[point.X-1][point.Y-1])
@@ -176,6 +178,11 @@ func (b *Board) neigboors(point *Point) []*Point {
 func (b *Board) setBoardForDB() {
 	jsonBoard, _ := json.Marshal(b.Board)
 	b.BoardDB = string(jsonBoard)
+	fmt.Printf("Board Actualized: %s", b.BoardDB)
+}
+
+func (b *Board) GetBoardFromDB() {
+	json.Unmarshal([]byte(b.BoardDB), &b.Board)
 }
 
 func filter(points []*Point, test func(*Point) bool) (ret []*Point) {
