@@ -4,10 +4,12 @@ FROM golang:latest as builder
 RUN mkdir -p /go/src/github.com/jiseruk/minesweeper
 WORKDIR /go/src/github.com/jiseruk/minesweeper
 COPY go.mod go.sum ./
+#RUN go list -e $(go list -f '{{.Path}}' -m all 2>/dev/null)
+RUN go mod download
 RUN GO111MODULE=on go mod vendor
 #For local environment
-ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh ./
-RUN chmod +x ./wait-for-it.sh
+#ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh ./
+#RUN chmod +x ./wait-for-it.sh
 RUN go get -u github.com/swaggo/swag/cmd/swag
 COPY . .
 
@@ -22,11 +24,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 #FROM busybox:musl
 FROM alpine:latest
+RUN apk update && apk add bash
 ENV GOPATH /go
 ENV GIN_MODE release
 WORKDIR /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper
+COPY --from=tests /go/src/github.com/jiseruk/minesweeper/wait-for-it.sh /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/wait-for-it.sh
 COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main 
-COPY --from=tests /go/src/github.com/jiseruk/minesweeper/config/config.yaml /go/src/github.com/jiseruk/minesweeper/config/config.yaml
+COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/config.yaml /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/config.yaml
 ENTRYPOINT ["./main"]
 #CMD ["./main"]
 EXPOSE 8080 

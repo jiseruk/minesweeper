@@ -16,6 +16,7 @@ services:
     volumes:
       - ./build:/docker-entrypoint-initdb.d/  
   minesweeper:
+    entrypoint: /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/wait-for-it.sh db:5432 --timeout=0 -- /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main
     build:
       context: .
       dockerfile: Dockerfile
