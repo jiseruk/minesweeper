@@ -36,7 +36,7 @@ func CreateBoard(c *gin.Context) {
 	c.JSON(http.StatusCreated, board.Print())
 }
 
-// CreateBoard godoc
+// SelectPoint godoc
 // @Summary Selects a point in the board
 // @Produce json
 // @Success 200 {object} models.Board
@@ -51,6 +51,21 @@ func SelectPoint(c *gin.Context) {
 	point.X--
 	point.Y--
 	board, err := boardService.SelectPoint(id, point)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, board.Print())
+}
+
+// Get godoc
+// @Summary Returns the board
+// @Produce json
+// @Success 200 {object} models.Board
+// @Router /boards/{id} [get]
+func Get(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	board, err := boardService.Get(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return

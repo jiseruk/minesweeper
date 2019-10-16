@@ -12,17 +12,17 @@ RUN GO111MODULE=on go mod vendor
 #RUN chmod +x ./wait-for-it.sh
 RUN go get -u github.com/swaggo/swag/cmd/swag
 COPY . .
+WORKDIR /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper
+RUN swag init
 
 FROM builder as tests
 ENV GOPATH /go
 WORKDIR /go/src/github.com/jiseruk/minesweeper
 #RUN go test ./... -covermode=count -coverprofile=cover.out -coverpkg=./...
 WORKDIR /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper
-RUN swag init
 #RUN bin/tests.sh
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main . 
 
-#FROM busybox:musl
 FROM alpine:latest
 RUN apk update && apk add bash
 ENV GOPATH /go

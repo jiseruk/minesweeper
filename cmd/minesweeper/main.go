@@ -45,6 +45,7 @@ func main() {
 
 	v1 := r.Group("/api/v1")
 	{
+		v1.GET("/boards/:id", apis.Get)
 		v1.PUT("/boards/:id", apis.SelectPoint)
 		v1.POST("/boards/", apis.CreateBoard)
 	}
