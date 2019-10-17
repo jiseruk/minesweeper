@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "name": "minesweeper",
+  "builds": [
+    { "src": "api/index.go", "use": "@now/go" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/index.go" }
+  ],
+  "env": {
+    "FAUNADB_SECRET_KEY": "lala"
+  }
+}

@@ -12,7 +12,7 @@ definitions:
         type: integer
       matrix:
         items:
-          type: '&{%!s(token.Pos=821) <nil> string}'
+          type: '&{%!s(token.Pos=926) <nil> string}'
         type: array
       mines:
         type: integer
@@ -26,11 +26,10 @@ definitions:
 info:
   contact:
     email: javier.iseruk@gmail.com
-    name: API Support
-  description: Swagger API for Golang Project Blueprint.
+    name: Javier Iseruk
+  description: Swagger API for Minesweeper API.
   license: {}
-  termsOfService: http://swagger.io/terms/
-  title: Blueprint Swagger API
+  title: Minesweeper Swagger API
   version: "1.0"
 paths:
   /boards/:
@@ -44,6 +43,15 @@ paths:
             $ref: '#/definitions/models.Board'
       summary: Creates board based on given json data
   /boards/{id}:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Board'
+      summary: Returns the board
     put:
       produces:
       - application/json

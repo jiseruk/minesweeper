@@ -1,11 +1,10 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Swagger API for Golang Project Blueprint.",
-        "title": "Blueprint Swagger API",
-        "termsOfService": "http://swagger.io/terms/",
+        "description": "Swagger API for Minesweeper API.",
+        "title": "Minesweeper Swagger API",
         "contact": {
-            "name": "API Support",
+            "name": "Javier Iseruk",
             "email": "javier.iseruk@gmail.com"
         },
         "license": {},
@@ -30,6 +29,20 @@
             }
         },
         "/boards/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Returns the board",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Board"
+                        }
+                    }
+                }
+            },
             "put": {
                 "produces": [
                     "application/json"
@@ -65,7 +78,7 @@
                 "matrix": {
                     "type": "array",
                     "items": {
-                        "type": "\u0026{%!s(token.Pos=821) \u003cnil\u003e string}"
+                        "type": "\u0026{%!s(token.Pos=926) \u003cnil\u003e string}"
                     }
                 },
                 "mines": {
