@@ -85,9 +85,9 @@ func GetRouter() *gin.Engine {
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.Recovery())
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	v1 := r.Group("/api/v1")
 	{
+		v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		v1.GET("/ping", Health)
 		v1.GET("/boards/:id", Get)
 		v1.PUT("/boards/:id", SelectPoint)

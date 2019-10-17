@@ -3,16 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/jiseruk/minesweeper/cmd/minesweeper/apis"
 	"github.com/jiseruk/minesweeper/cmd/minesweeper/models"
 
 	"github.com/jiseruk/minesweeper/cmd/minesweeper/config"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "github.com/jiseruk/minesweeper/cmd/minesweeper/docs"
 )
@@ -33,22 +29,7 @@ func main() {
 	}
 
 	// Creates a router without any middleware by default
-	r := gin.New()
-
-	// Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
-	r.Use(gin.Logger())
-
-	// Recovery middleware recovers from any panics and writes a 500 if there was one.
-	r.Use(gin.Recovery())
-
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	v1 := r.Group("/api/v1")
-	{
-		v1.GET("/boards/:id", apis.Get)
-		v1.PUT("/boards/:id", apis.SelectPoint)
-		v1.POST("/boards/", apis.CreateBoard)
-	}
+	r := apis.GetRouter()
 
 	config.Config.DB, config.Config.DBErr = gorm.Open("postgres", config.Config.DSN)
 	if config.Config.DBErr != nil {
