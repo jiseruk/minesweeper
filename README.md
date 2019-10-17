@@ -9,3 +9,11 @@ url: https://minesweeper.javieriseruk.now.sh/api/v1
 
 The version deployed in Zeit does not support the swagger doc yet.
 
+The persistence supported are:
+ 
+sqlite (for Zeit Now deployment)
+in-memory (for testing purposes)
+
+The Rest API is developed with the Gin Gonic Framework
+
+
