@@ -17,32 +17,38 @@ func NewBoardService(dao daos.BoardDAO) *BoardService {
 }
 
 // Creates Board DAO, here can be additional logic for processing data retrieved by DAOs
-func (s *BoardService) Create(board *models.Board) (*models.Board, error) {
+func (s *BoardService) Create(board *models.Game) (*models.Game, error) {
 	board.Populate()
 	board.Status = models.StatusActive
+	board.UnknownMines = board.Mines
+	board.UnselectedPoints = board.Width*board.Height - board.Mines
 	return s.dao.Create(board)
 }
 
 //Selects a point in the board
-func (s *BoardService) SelectPoint(id int, point models.Point) (*models.Board, error) {
-	if board, err := s.dao.Get(id); err == nil {
+func (s *BoardService) SelectPoint(id int, point models.Point) (*models.Game, error) {
+	point.X--
+	point.Y--
+	var err error
+	if board, dberr := s.dao.Get(id); dberr == nil {
 		fmt.Printf("%v", point)
 		if point.Mine != nil {
-			board.SetMine(point)
+			err = board.SetMine(point)
 		} else {
-			board.Select(point)
+			err = board.Select(point)
 		}
-		if _, err := s.dao.Update(board); err != nil {
-			return nil, err
+		if _, dberr := s.dao.Update(board); dberr != nil {
+			board.GetBoardFromDB()
+			return nil, dberr
 		}
-		return board, nil
+		return board, err
 	} else {
-		return nil, err
+		return nil, dberr
 	}
 }
 
 //Set a point as a mine candidate in the board
-func (s *BoardService) SelectMine(id int, point models.Point) (*models.Board, error) {
+func (s *BoardService) SelectMine(id int, point models.Point) (*models.Game, error) {
 	if board, err := s.dao.Get(id); err == nil {
 		board.SetMine(point)
 		if _, err := s.dao.Update(board); err != nil {
@@ -55,7 +61,7 @@ func (s *BoardService) SelectMine(id int, point models.Point) (*models.Board, er
 }
 
 //Get the board
-func (s *BoardService) Get(id int) (*models.Board, error) {
+func (s *BoardService) Get(id int) (*models.Game, error) {
 	if board, err := s.dao.Get(id); err == nil {
 		return board, nil
 	} else {

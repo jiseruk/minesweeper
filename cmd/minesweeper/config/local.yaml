@@ -1,2 +1,3 @@
 dsn: "postgres://minesweeper:minesweeper@db:5432/minesweeper?sslmode=disable"
+dialect: postgres
 server_port: 8080

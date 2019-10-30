@@ -30,7 +30,8 @@ ENV GIN_MODE release
 WORKDIR /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper
 COPY --from=tests /go/src/github.com/jiseruk/minesweeper/wait-for-it.sh /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/wait-for-it.sh
 COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main 
-COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/config.yaml /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/config.yaml
+COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/local.yaml /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/local.yaml
+COPY --from=tests /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/now.yaml /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/config/now.yaml
 ENTRYPOINT ["./main"]
 #CMD ["./main"]
 EXPOSE 8080 

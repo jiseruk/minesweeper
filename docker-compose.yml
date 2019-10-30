@@ -16,16 +16,18 @@ services:
     volumes:
       - ./build:/docker-entrypoint-initdb.d/  
   minesweeper:
-    entrypoint: /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/wait-for-it.sh db:5432 --timeout=0 -- /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main
+    #entrypoint: /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/wait-for-it.sh db:5432 --timeout=0 -- /go/src/github.com/jiseruk/minesweeper/cmd/minesweeper/main
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     tty: true
     stdin_open: true
     links:
       - db:db
     ports:
       - '8080:8080'
+    volumes:
+      - ./:/go/src/github.com/jiseruk/minesweeper
     environment:
       GO_ENVIRONMENT: local
       <<: *common-variables

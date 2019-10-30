@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jiseruk/minesweeper/cmd/minesweeper/daos"
 	"github.com/jiseruk/minesweeper/cmd/minesweeper/models"
 	"github.com/jiseruk/minesweeper/cmd/minesweeper/services"
-	"github.com/jiseruk/minesweeper/cmd/minesweeper/test_data"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -15,20 +15,20 @@ import (
 var BoardService *services.BoardService
 
 func init() {
-	BoardService = services.NewBoardService(&test_data.MockBoardDAO{
-		Records: make(map[int]models.Board, 0),
-	})
-	//BoardService = services.NewBoardService(&daos.BoardDAOImpl{})
+	/*BoardService = services.NewBoardService(&test_data.MockBoardDAO{
+		Records: make(map[int]models.Game, 0),
+	})*/
+	BoardService = services.NewBoardService(&daos.BoardDAOImpl{})
 }
 
 // CreateBoard godoc
 // @Summary Creates board based on given json data
 // @Produce json
-// @Success 201 {object} models.Board
+// @Success 201 {object} models.Game
 // @Router /boards/ [post]
 func CreateBoard(c *gin.Context) {
 
-	var board models.Board
+	var board models.Game
 	if err := c.ShouldBindJSON(&board); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -40,7 +40,7 @@ func CreateBoard(c *gin.Context) {
 // SelectPoint godoc
 // @Summary Selects a point in the board
 // @Produce json
-// @Success 200 {object} models.Board
+// @Success 200 {object} models.Game
 // @Router /boards/{id} [put]
 func SelectPoint(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -49,9 +49,26 @@ func SelectPoint(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	point.X--
-	point.Y--
 	board, err := BoardService.SelectPoint(id, point)
+	if err != nil {
+		if gameErr, ok := err.(*models.GameError); ok {
+			c.JSON(gameErr.StatusCode, &gameErr)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, board.Print())
+}
+
+// Get godoc
+// @Summary Returns the board
+// @Produce json
+// @Success 200 {object} models.Game
+// @Router /boards/{id} [get]
+func Get(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	board, err := BoardService.Get(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -62,16 +79,16 @@ func SelectPoint(c *gin.Context) {
 // Get godoc
 // @Summary Returns the board
 // @Produce json
-// @Success 200 {object} models.Board
-// @Router /boards/{id} [get]
-func Get(c *gin.Context) {
+// @Success 200 {object} models.Game
+// @Router /boards/{id}/board [get]
+func GetBoard(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	board, err := BoardService.Get(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, board.Print())
+	c.String(http.StatusOK, board.String())
 }
 
 func Health(c *gin.Context) {
@@ -86,12 +103,11 @@ func GetRouter() *gin.Engine {
 	r.Use(gin.Recovery())
 
 	v1 := r.Group("/api/v1")
-	{
-		v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-		v1.GET("/ping", Health)
-		v1.GET("/boards/:id", Get)
-		v1.PUT("/boards/:id", SelectPoint)
-		v1.POST("/boards/", CreateBoard)
-	}
+	v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	v1.GET("/ping", Health)
+	v1.GET("/boards/:id", Get)
+	v1.GET("/boards/:id/board", GetBoard)
+	v1.PUT("/boards/:id", SelectPoint)
+	v1.POST("/boards/", CreateBoard)
 	return r
 }

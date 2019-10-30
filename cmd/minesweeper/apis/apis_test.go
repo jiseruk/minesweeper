@@ -39,8 +39,8 @@ func testingRouter() *gin.Engine {
 }
 
 // Used to run single API test case. It makes HTTP request and returns its response
-func testAPICall(router *gin.Engine, method string, urlToServe string, urlToHit string, function gin.HandlerFunc, body string) *httptest.ResponseRecorder {
-	router.Handle(method, urlToServe, function)
+func testAPICall(method string, urlToHit string, body string) *httptest.ResponseRecorder {
+	router := GetRouter()
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest(method, urlToHit, bytes.NewBufferString(body))
 	router.ServeHTTP(res, req)
@@ -50,12 +50,11 @@ func testAPICall(router *gin.Engine, method string, urlToServe string, urlToHit 
 // Used to run suite (list) of test cases. It checks JSON response is same as expected data in test case file.
 // All test expected test case responses are stored in `test_data/test_case_data` folder in format `<suite_name>_t<number>.json`
 func runTestsSuite(t *testing.T, tests []apiTestCase) {
-	boardService = services.NewBoardService(&test_data.MockBoardDAO{
-		Records: map[int]models.Board{1: models.Board{Model: models.Model{ID: 1}, Height: 5, Width: 5, Mines: 5, Status: models.StatusActive}},
+	BoardService = services.NewBoardService(&test_data.MockBoardDAO{
+		Records: map[int]models.Game{1: models.Game{Model: models.Model{ID: 1}, Height: 5, Width: 5, Mines: 5, Status: models.StatusActive}},
 	})
 	for _, test := range tests {
-		router := testingRouter()
-		res := testAPICall(router, test.method, test.urlToServe, test.urlToHit, test.function, test.body)
+		res := testAPICall(test.method, test.urlToHit, test.body)
 		assert.Equal(t, test.status, res.Code, test.tag)
 		if test.responseFilePath != "" {
 			response, _ := ioutil.ReadFile(".." + test.responseFilePath)

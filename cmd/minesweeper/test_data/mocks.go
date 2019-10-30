@@ -7,10 +7,10 @@ import (
 )
 
 type MockBoardDAO struct {
-	Records map[int]models.Board
+	Records map[int]models.Game
 }
 
-func (m *MockBoardDAO) Create(board *models.Board) (*models.Board, error) {
+func (m *MockBoardDAO) Create(board *models.Game) (*models.Game, error) {
 	board.ID = len(m.Records) + 1
 	board.Status = models.StatusActive
 	m.Records[board.ID] = *board
@@ -18,15 +18,13 @@ func (m *MockBoardDAO) Create(board *models.Board) (*models.Board, error) {
 	return board, nil
 }
 
-func (m *MockBoardDAO) Update(board *models.Board) (*models.Board, error) {
-	board.ID = len(m.Records) + 1
-	board.Status = models.StatusActive
+func (m *MockBoardDAO) Update(board *models.Game) (*models.Game, error) {
 	m.Records[board.ID] = *board
 
 	return board, nil
 }
 
-func (m *MockBoardDAO) Get(id int) (*models.Board, error) {
+func (m *MockBoardDAO) Get(id int) (*models.Game, error) {
 	if board, ok := m.Records[id]; ok {
 		return &board, nil
 	}

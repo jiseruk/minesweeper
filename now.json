@@ -5,9 +5,10 @@
     { "src": "api/index.go", "use": "@now/go" }
   ],
   "routes": [
+    { "src": "/api/v1/swagger/index.html", "dest": "api/index.go" },
     { "src": "/api/(.*)", "dest": "api/index.go" }
   ],
   "env": {
-    "FAUNADB_SECRET_KEY": "lala"
+    "GO_ENVIRONMENT": "now"
   }
 }

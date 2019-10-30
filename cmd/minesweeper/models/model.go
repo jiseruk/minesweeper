@@ -8,15 +8,34 @@ import (
 	"time"
 )
 
-const StatusActive = "ACTIVE"
-const StatusWin = "WIN"
-const StatusLost = "LOST"
+type GameStatus int
+
+const (
+	StatusActive GameStatus = iota
+	StatusWin
+	StatusLost
+)
+
+var StatusNames = [...]string{"ACTIVE", "WIN", "GAME_OVER"}
+var StatusValues = map[string]GameStatus{
+	StatusNames[0]: StatusActive,
+	StatusNames[1]: StatusWin,
+	StatusNames[2]: StatusLost,
+}
+
+func (s GameStatus) String() string {
+	return StatusNames[s]
+}
+func (s GameStatus) MarshalJSON() ([]byte, error) {
+	val := fmt.Sprintf(`"%s"`, s.String())
+	return []byte(val), nil
+}
 
 type Model struct {
 	ID        int        `gorm:"primary_key;column:id" json:"id"`
-	CreatedAt time.Time  `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt time.Time  `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
+	CreatedAt time.Time  `gorm:"column:created_at" json:"-"`
+	UpdatedAt time.Time  `gorm:"column:updated_at" json:"-"`
+	DeletedAt *time.Time `gorm:"column:deleted_at" json:"-"`
 }
 
 type Point struct {
@@ -28,46 +47,72 @@ type Point struct {
 	MineNeighbours int   `json:"mine_neighbours"`
 }
 
-type Board struct {
+type Board [][]Point
+type Game struct {
 	Model
-	Width   int        `gorm:"column:width" json:"width"`
-	Height  int        `gorm:"column:height" json:"height"`
-	Mines   int        `gorm:"column:mines" json:"mines"`
-	Matrix  [][]string `gorm:"-" json:"matrix"`
-	Board   [][]Point  `gorm:"-" json:"-"`
-	BoardDB string     `gorm:"board" json:"-"`
-	Status  string     `gorm:"status" json:"status"`
+	Width            int        `gorm:"column:width" json:"width"`
+	Height           int        `gorm:"column:height" json:"height"`
+	Mines            int        `gorm:"column:mines" json:"mines"`
+	UnknownMines     int        `gorm:"unknown_mines" json:"-"`
+	UnselectedPoints int        `gorm:"unselected_points" json:"-"`
+	Matrix           [][]string `gorm:"-" json:"matrix"`
+	Board            Board      `gorm:"-" json:"-"`
+	BoardDB          string     `gorm:"board" json:"-"`
+	Status           GameStatus `gorm:"status" json:"status"`
+}
+
+type GameError struct {
+	StatusCode int    `json:"status_code"`
+	ErrorMsg   string `json:"error"`
+}
+
+func (e *GameError) Error() string {
+	return e.ErrorMsg
 }
 
 func (p *Point) click() {
 	p.Selected = true
 }
-
-func (b *Board) Print() *Board {
-	b.Matrix = make([][]string, b.Height)
-	for i, points := range b.Board {
-		b.Matrix[i] = make([]string, b.Width)
-		for j := range points {
-			if b.Status == StatusLost {
-				if *b.Board[i][j].Mine {
-					b.Matrix[i][j] = "*"
-				} else {
-					if points[j].MineNeighbours == 0 {
-						b.Matrix[i][j] = " "
-					} else {
-						b.Matrix[i][j] = strconv.Itoa(points[j].MineNeighbours)
-					}
-				}
-			} else if points[j].MineCandidate {
-				b.Matrix[i][j] = "*"
-			} else if !points[j].Selected {
-				b.Matrix[i][j] = "-"
+func (b *Game) String() string {
+	b.Print()
+	s := ""
+	for x := range b.Matrix {
+		for y := range b.Matrix[x] {
+			s += b.Matrix[x][y]
+			if y == b.Height-1 {
+				s += "\n"
 			} else {
-				if points[j].MineNeighbours == 0 {
-					b.Matrix[i][j] = " "
+				s += " "
+			}
+		}
+	}
+	return s
+}
+
+func (b *Game) Print() *Game {
+	b.Matrix = make([][]string, b.Height)
+	for i := range b.Matrix {
+		b.Matrix[i] = make([]string, b.Width)
+	}
+	for i, points := range b.Board {
+		for j := range points {
+			if b.Status != StatusActive {
+				if *b.Board[i][j].Mine {
+					if !b.Board[i][j].MineCandidate {
+						b.Matrix[j][i] = "X"
+					} else {
+						b.Matrix[j][i] = "*"
+					}
+
 				} else {
-					b.Matrix[i][j] = strconv.Itoa(points[j].MineNeighbours)
+					b.Matrix[j][i] = strconv.Itoa(b.Board[i][j].MineNeighbours)
 				}
+			} else if b.Board[i][j].MineCandidate {
+				b.Matrix[j][i] = "*"
+			} else if !b.Board[i][j].Selected {
+				b.Matrix[j][i] = "-"
+			} else {
+				b.Matrix[j][i] = strconv.Itoa(b.Board[i][j].MineNeighbours)
 			}
 			//looping over each element of array and assigning it a random variable
 		}
@@ -75,66 +120,99 @@ func (b *Board) Print() *Board {
 	return b
 }
 
-func (b *Board) SetMine(p Point) bool {
+func (b *Game) SetMine(p Point) error {
 	if b.Status != StatusActive {
-		return false
+		return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_FINISHED"}
+	} else if p.Mine == nil {
+		return &GameError{StatusCode: 400, ErrorMsg: "INVALID"}
 	}
 	var point *Point
 	point = &b.Board[p.X][p.Y]
 	fmt.Printf("%#v", point)
-	if point.Selected || point.MineCandidate {
-		return false
+	if point.Selected {
+		return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_SELECTED"}
+	} else if point.MineCandidate {
+		if *p.Mine {
+			return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_MINE_CANDIDATE"}
+		} else {
+			point.MineCandidate = false
+			b.UnknownMines++
+		}
+	} else if !point.MineCandidate {
+		if !*p.Mine {
+			return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_NOT_MINE_CANDIDATE"}
+		} else {
+			point.MineCandidate = true
+			b.UnknownMines--
+			if b.UnselectedPoints == 0 && b.UnknownMines == 0 {
+				b.Status = StatusWin
+			}
+		}
 	}
-	point.MineCandidate = *p.Mine
+
 	b.setBoardForDB()
-	return true
+	return nil
 }
 
-func (b *Board) Select(p Point) bool {
+func (b *Game) Select(p Point) error {
 	if b.Status != StatusActive {
-		return false
+		return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_FINISHED"}
 	}
 	var point *Point
 	point = &b.Board[p.X][p.Y]
 	if point.Selected || point.MineCandidate {
-		return false
+		return &GameError{StatusCode: 400, ErrorMsg: "ALREADY_SELECTED"}
 	} else if *point.Mine {
 		b.Status = StatusLost
-		return false
+		b.setBoardForDB()
+		return nil
 	} else {
 		point.click()
-		//b.setBoardForDB()
+		b.UnselectedPoints--
+		if b.UnselectedPoints == 0 && b.UnknownMines == 0 {
+			b.Status = StatusWin
+		}
+		if point.MineNeighbours > 0 {
+			b.setBoardForDB()
+			return nil
+		}
 		for _, pt := range b.neighbours(point) {
 			if !pt.Selected && !pt.MineCandidate && !*pt.Mine {
 				if pt.MineNeighbours == 0 {
 					b.Select(*pt)
 				} else {
 					b.Board[pt.X][pt.Y].click()
-					//b.setBoardForDB()
+					b.UnselectedPoints--
+					if b.UnselectedPoints == 0 && b.UnknownMines == 0 {
+						b.Status = StatusWin
+					}
 				}
 			}
 		}
 		b.setBoardForDB()
-		return true
+		return nil
 	}
 }
 
-func (b *Board) Populate() *Board {
-	b.Board = make([][]Point, b.Height)
+func (b *Game) Populate(mines ...Point) *Game {
+	b.Board = make([][]Point, b.Width)
 	for i, points := range b.Board {
-		points = make([]Point, b.Width)
+		points = make([]Point, b.Height)
 		for j := range points {
-			points[j] = Point{X: i, Y: j, Mine: boolValue(false), Selected: false, MineCandidate: false}
-			//looping over each element of array and assigning it a random variable
+			points[j] = Point{X: i, Y: j, Mine: BoolValue(false), Selected: false, MineCandidate: false}
 		}
 		b.Board[i] = points
 	}
+
+	for _, point := range mines {
+		b.Board[point.X-1][point.Y-1].Mine = BoolValue(true)
+	}
 	i := 0
-	for i < b.Mines {
+	for len(mines) == 0 && i < b.Mines {
 		x := rand.Intn(b.Width)
 		y := rand.Intn(b.Height)
 		if !*b.Board[x][y].Mine {
-			b.Board[x][y] = Point{X: x, Y: y, Mine: boolValue(true), Selected: false, MineCandidate: false}
+			b.Board[x][y] = Point{X: x, Y: y, Mine: BoolValue(true), Selected: false, MineCandidate: false}
 			i++
 		}
 	}
@@ -150,7 +228,7 @@ func (b *Board) Populate() *Board {
 	return b
 }
 
-func (b *Board) neighbours(point *Point) []*Point {
+func (b *Game) neighbours(point *Point) []*Point {
 	points := make([]*Point, 0)
 	if point.X > 0 && point.Y > 0 {
 		points = append(points, &b.Board[point.X-1][point.Y-1])
@@ -179,13 +257,12 @@ func (b *Board) neighbours(point *Point) []*Point {
 	return points
 }
 
-func (b *Board) setBoardForDB() {
+func (b *Game) setBoardForDB() {
 	jsonBoard, _ := json.Marshal(b.Board)
 	b.BoardDB = string(jsonBoard)
-	fmt.Printf("Board Actualized: %s", b.BoardDB)
 }
 
-func (b *Board) GetBoardFromDB() {
+func (b *Game) GetBoardFromDB() {
 	json.Unmarshal([]byte(b.BoardDB), &b.Board)
 }
 
@@ -200,6 +277,6 @@ func filter(points []*Point, test func(*Point) bool) (ret []*Point) {
 
 var mineNeigboors = func(p *Point) bool { return *p.Mine }
 
-func boolValue(b bool) *bool {
+func BoolValue(b bool) *bool {
 	return &b
 }
