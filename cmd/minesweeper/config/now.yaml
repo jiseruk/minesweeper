@@ -1,3 +1,3 @@
-dsn: "/tmp/minesweeper.db"
+dsn: ":memory:"
 dialect: sqlite3
 server_port: 8080

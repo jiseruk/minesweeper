@@ -46,8 +46,12 @@ type Point struct {
 	MineCandidate  bool  `json:"mine_candidate"`
 	MineNeighbours int   `json:"mine_neighbours"`
 }
+func (p *Point) click() {
+	p.Selected = true
+}
 
 type Board [][]Point
+
 type Game struct {
 	Model
 	Width            int        `gorm:"column:width" json:"width"`
@@ -70,9 +74,6 @@ func (e *GameError) Error() string {
 	return e.ErrorMsg
 }
 
-func (p *Point) click() {
-	p.Selected = true
-}
 func (b *Game) String() string {
 	b.Print()
 	s := ""

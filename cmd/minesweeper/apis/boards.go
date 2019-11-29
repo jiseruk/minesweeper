@@ -25,7 +25,7 @@ func init() {
 // @Summary Creates board based on given json data
 // @Produce json
 // @Success 201 {object} models.Game
-// @Router /boards/ [post]
+// @Router /games/ [post]
 func CreateBoard(c *gin.Context) {
 
 	var board models.Game
@@ -41,7 +41,7 @@ func CreateBoard(c *gin.Context) {
 // @Summary Selects a point in the board
 // @Produce json
 // @Success 200 {object} models.Game
-// @Router /boards/{id} [put]
+// @Router /games/{id} [put]
 func SelectPoint(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var point models.Point
@@ -65,7 +65,7 @@ func SelectPoint(c *gin.Context) {
 // @Summary Returns the board
 // @Produce json
 // @Success 200 {object} models.Game
-// @Router /boards/{id} [get]
+// @Router /games/{id} [get]
 func Get(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	board, err := BoardService.Get(id)
@@ -80,7 +80,7 @@ func Get(c *gin.Context) {
 // @Summary Returns the board
 // @Produce json
 // @Success 200 {object} models.Game
-// @Router /boards/{id}/board [get]
+// @Router /games/{id}/board [get]
 func GetBoard(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	board, err := BoardService.Get(id)
@@ -105,9 +105,9 @@ func GetRouter() *gin.Engine {
 	v1 := r.Group("/api/v1")
 	v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	v1.GET("/ping", Health)
-	v1.GET("/boards/:id", Get)
-	v1.GET("/boards/:id/board", GetBoard)
-	v1.PUT("/boards/:id", SelectPoint)
-	v1.POST("/boards/", CreateBoard)
+	v1.GET("/games/:id", Get)
+	v1.GET("/games/:id/board", GetBoard)
+	v1.PUT("/games/:id", SelectPoint)
+	v1.POST("/games/", CreateBoard)
 	return r
 }
